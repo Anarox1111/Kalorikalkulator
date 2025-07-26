@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Kalori-kalender</title>
+  </head>
+  <body>
+    <main>
+      <h1>Kalori-kalender 📅</h1>
+      <nav style="text-align:center; margin-bottom: 1em;">
+        <a href="index.html" class="calendar-link">🏠 Tilbake til kalkulator</a>
+      </nav>
+      <div class="calendar-grid" id="calendar-grid"></div>
+      <div id="modal" class="modal hide">
+        <div class="modal-content">
+          <span class="close" id="modal-close">&times;</span>
+          <div id="modal-body"></div>
+          <button id="modal-clear-day" class="modal-clear-day">🗑️</button>
+        </div>
+      </div>
+    </main>
+    <script src="./script.js"></script>
+    <script>
+      // Only for calendar page: render calorie history from localStorage
+      document.addEventListener('DOMContentLoaded', function() {
+        const grid = document.getElementById('calendar-grid');
+        let calorieHistory = JSON.parse(localStorage.getItem('calorieHistory') || '[]');
+        if (calorieHistory.length === 0) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">Ingen kaloridata funnet.</div>';
+        } else {
+          // Group by date (in case of multiple entries per day)
+          const grouped = {};
+          calorieHistory.forEach(entry => {
+            if (!grouped[entry.date]) grouped[entry.date] = [];
+            grouped[entry.date].push(entry);
+          });
+          Object.keys(grouped).sort().reverse().forEach(date => {
+            const entries = grouped[date];
+            const last = entries[entries.length-1];
+            let budget = last.budget !== undefined ? last.budget : '';
+            let consumed = last.consumed !== undefined ? last.consumed : '';
+            let exercise = last.exercise !== undefined ? last.exercise : '';
+            let remaining = last.calories;
+            let infoHtml = '';
+            if (budget !== '' && consumed !== '' && exercise !== '') {
+              infoHtml = `
+                <div class="budget">Kalorigrense 🎯: <span>${budget}</span></div>
+                <div class="consumed">Kalorier spist 🍔: <span>${consumed}</span></div>
+                <div class="exercise">Kalorier brent 💪🔥: <span>${exercise}</span></div>
+                <div class="calories">${Math.abs(remaining)} ${remaining < 0 ? 'Kalorioverskudd 🍕🤤' : 'Kaloriunderskudd 🥦💪'}</div>
+              `;
+            } else {
+              infoHtml = `<div class="calories">${remaining} kcal</div>`;
+            }
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'calendar-day';
+            dayDiv.innerHTML = `<div class=\"date\">${date}</div>${infoHtml}`;
+            // Click event for popup
+            dayDiv.addEventListener('click', function() {
+              showModal(date, last);
+            });
+            grid.appendChild(dayDiv);
+          });
+        }
+
+        // Modal popup logic
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modal-body');
+        const modalClose = document.getElementById('modal-close');
+        function showModal(date, entry) {
+          let html = `<h2 style='margin-top:0;'>${date}</h2>`;
+          if (entry.foods && entry.foods.length > 0) {
+            html += '<ul style="padding-left:1em;">';
+            entry.foods.forEach(food => {
+              html += `<li>${food.name ? food.name : 'Mat'}: <b>${food.calories}</b> kcal</li>`;
+            });
+            html += '</ul>';
+          } else {
+            html += '<p>Ingen matdetaljer lagret for denne dagen.</p>';
+          }
+          modalBody.innerHTML = html;
+          modal.classList.remove('hide');
+          // clearBtn
+          const clearBtn = document.getElementById('modal-clear-day');
+          clearBtn.onclick = function() {
+            let calorieHistory = JSON.parse(localStorage.getItem('calorieHistory') || '[]');
+            calorieHistory = calorieHistory.filter(entry => entry.date !== date);
+            localStorage.setItem('calorieHistory', JSON.stringify(calorieHistory));
+            modal.classList.add('hide');
+            // Refresh calendar grid
+            location.reload();
+          };
+        }
+        modalClose.addEventListener('click', function() {
+          modal.classList.add('hide');
+        });
+        window.addEventListener('click', function(e) {
+          if (e.target === modal) {
+            modal.classList.add('hide');
+          }
+        });
+      });
+    </script>
+  </body>
+</html> 
