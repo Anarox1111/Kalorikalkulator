@@ -45,3 +45,4 @@ Kalenderen viser dag-for-dag:
 
 * Rydder opp skjemaet etter beregning for en ny dag.
 
+Mobile friendly :)
